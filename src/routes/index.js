@@ -5,9 +5,10 @@ require("dotenv").config();
 const router = express.Router();
 
 // Controller
-const { login } = require("../controllers/auth");
+const { login, register } = require("../controllers/auth");
 
 // Route
 router.post("/login", login);
+router.post("/register", register);
 
 module.exports = router;

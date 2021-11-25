@@ -18,7 +18,7 @@ module.exports = {
         type: Sequelize.STRING,
       },
       gender: {
-        type: Sequelize.BOOLEAN,
+        type: Sequelize.STRING,
       },
       phone: {
         type: Sequelize.STRING,
