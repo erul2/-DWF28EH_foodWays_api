@@ -15,14 +15,20 @@ exports.getUsers = async (req, res) => {
       },
     });
 
-    const userData = users.map((user) => {
+    const userData = await users.map((user) => {
+      let image = null;
+      let location = null;
+      if (user.profile) {
+        location = user.profile.location;
+        image = user.profile.image;
+      }
       return {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
-        location: user.profile.location,
-        image: user.profile.image,
+        location,
+        image,
         role: user.role,
       };
     });

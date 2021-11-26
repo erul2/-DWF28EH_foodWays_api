@@ -6,7 +6,8 @@ const router = express.Router();
 
 // Controller
 const { login, register } = require("../controllers/auth");
-const { getUsers, deleteUser } = require("../controllers/users");
+const { getUsers, deleteUser } = require("../controllers/user");
+const { getProducts } = require("../controllers/product");
 
 // Route
 router.post("/login", login);
@@ -14,5 +15,7 @@ router.post("/register", register);
 
 router.get("/users", getUsers);
 router.delete("/user/:id", deleteUser);
+
+router.get("/products", getProducts);
 
 module.exports = router;

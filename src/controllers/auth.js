@@ -37,6 +37,14 @@ exports.login = async (req, res) => {
       },
     });
 
+    // if user not found send respone
+    if (!userExist) {
+      return res.status(400).send({
+        status: "failed",
+        message: "User Not Found",
+      });
+    }
+
     // compare password between entered from client and from databse
     const isValid = await bcrypt.compare(req.body.password, userExist.password);
 
@@ -94,11 +102,6 @@ exports.register = async (req, res) => {
   }
 
   try {
-    // generate salt
-    const salt = await bcrypt.genSalt(10);
-    // hashing password from request body
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     // check if email aleready exists
     const userExist = await user.findOne({
       where: {
@@ -115,6 +118,11 @@ exports.register = async (req, res) => {
         message: "User aleready exists",
       });
     }
+
+    // generate salt
+    const salt = await bcrypt.genSalt(10);
+    // hashing password from request body
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = await user.create({
       email,
