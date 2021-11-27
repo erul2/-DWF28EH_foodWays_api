@@ -27,7 +27,7 @@ exports.getProducts = async (req, res) => {
       },
     });
 
-    // check if product exists
+    // check if product not exists
     // if (!dataProduct) {
     //   return res.status(404).send({
     //     status: "failed",
@@ -260,6 +260,7 @@ exports.editProduct = async function (req, res) {
       });
     }
     await dataProduct.update({ title });
+
     const dataUser = await user.findOne({
       where: { id: req.user.id },
       include: [
