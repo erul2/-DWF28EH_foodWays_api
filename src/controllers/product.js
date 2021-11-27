@@ -150,7 +150,7 @@ exports.getDetailProduct = async (req, res) => {
         image,
         user: {
           id: user.id,
-          fullNmae: user.fullName,
+          fullName: user.fullName,
           email: user.email,
           phone: user.phone,
           location: user.profile.location,
