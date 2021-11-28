@@ -8,11 +8,17 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
-      idProduct: {
-        type: Sequelize.INTEGER,
-      },
       qty: {
         type: Sequelize.INTEGER,
+      },
+      idProduct: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: "products",
+          key: "id",
+        },
+        onUpdate: "CASCADE",
+        onDelete: "NO ACTION",
       },
       idTransaction: {
         type: Sequelize.INTEGER,
