@@ -28,17 +28,6 @@ exports.getProducts = async (req, res) => {
       },
     });
 
-<<<<<<< HEAD
-    // check if product not exists
-    // if (!dataProduct) {
-    //   return res.status(404).send({
-    //     status: "failed",
-    //     message: "Products not found",
-    //   });
-    // }
-
-=======
->>>>>>> 4.Product
     const data = await dataProduct.map((product) => {
       let location = null;
       product.user.profile.location
