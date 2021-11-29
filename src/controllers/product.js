@@ -1,4 +1,5 @@
 const { products, user, profile } = require("../../models");
+const fs = require("fs");
 
 // controller get all products
 exports.getProducts = async (req, res) => {
@@ -27,6 +28,7 @@ exports.getProducts = async (req, res) => {
       },
     });
 
+<<<<<<< HEAD
     // check if product not exists
     // if (!dataProduct) {
     //   return res.status(404).send({
@@ -35,6 +37,8 @@ exports.getProducts = async (req, res) => {
     //   });
     // }
 
+=======
+>>>>>>> 4.Product
     const data = await dataProduct.map((product) => {
       let location = null;
       product.user.profile.location
@@ -237,8 +241,6 @@ exports.addProduct = async (req, res) => {
 
 // controller edit product
 exports.editProduct = async function (req, res) {
-  const { title } = req.body;
-
   // check user role, just partner can edit
   if (req.user.role != "partner") {
     return res.status(401).send({
@@ -259,8 +261,7 @@ exports.editProduct = async function (req, res) {
         message: "You are not owner",
       });
     }
-    await dataProduct.update({ title });
-
+    await dataProduct.update(req.body);
     const dataUser = await user.findOne({
       where: { id: req.user.id },
       include: [
@@ -325,6 +326,11 @@ exports.deleteProduct = async (req, res) => {
         message: "you don't have permission to delete the product",
       });
     }
+
+    // preform delte image
+    fs.unlink(`uploads/${productData.image}`, (err) => {
+      err ? console.log(err) : null;
+    });
 
     // preform delete product
     await productData.destroy();
