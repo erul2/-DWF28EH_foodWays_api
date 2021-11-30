@@ -25,7 +25,7 @@ const {
 } = require("../controllers/transaction");
 
 // Middlewares
-const { auth } = require("../middlewares/auth");
+const { auth, authPartner } = require("../middlewares/auth");
 const { uploadFile } = require("../middlewares/uploadFile");
 
 // Routes
@@ -40,12 +40,17 @@ router.delete("/user/:id", deleteUser); // delete a user
 router.get("/products", getProducts); // get all products
 router.get("/products/:userId", getProduct); // Get all products by partnerId
 router.get("/product/:productId", getDetailProduct); // Get the detail product
-router.post("/product", auth, uploadFile("image"), addProduct); // Add product, need auth (token)(partner)
-router.put("/product/:productId", auth, editProduct); // Edit a product need auth (token) (partner)
-router.delete("/product/:productId", auth, deleteProduct); // delte product
+router.post("/product", authPartner, uploadFile("image"), addProduct); // Add product, need auth (token)(partner)
+router.put(
+  "/product/:productId",
+  authPartner,
+  uploadFile("image"),
+  editProduct
+); // Edit a product need auth (token) (partner)
+router.delete("/product/:productId", authPartner, deleteProduct); // delte product
 
 // transaction routes
-router.get("/transactions/:userId", auth, getTransactions); // get trx filter by partner
+router.get("/transactions/:userId", authPartner, getTransactions); // get trx filter by partner
 router.get("/transaction/:transactionId", auth, getDetailTransaction); // get detail
 router.post("/transaction", auth, addTransaction); // add transaction
 router.put("/transaction/:transactionId", editTransaction); // edit transaction

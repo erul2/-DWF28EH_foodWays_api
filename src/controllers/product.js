@@ -37,7 +37,7 @@ exports.getProducts = async (req, res) => {
         id: product.id,
         title: product.title,
         price: product.price,
-        image: product.image,
+        image: process.env.UPLOADS + product.image,
         user: {
           id: product.user.id,
           fullName: product.user.fullName,
@@ -64,7 +64,7 @@ exports.getProducts = async (req, res) => {
 exports.getProduct = async (req, res) => {
   const id = req.params.userId;
   try {
-    const data = await products.findAll({
+    const dataProduct = await products.findAll({
       where: {
         idUser: id,
       },
@@ -73,6 +73,14 @@ exports.getProduct = async (req, res) => {
       },
     });
 
+    const data = await dataProduct.map((product) => {
+      return {
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        image: process.env.UPLOADS + product.image,
+      };
+    });
     if (data.length === 0) {
       return res.status(404).send({
         status: "failed",
@@ -140,7 +148,7 @@ exports.getDetailProduct = async (req, res) => {
         id,
         title,
         price,
-        image,
+        image: process.env.UPLOADS + image,
         user: {
           id: user.id,
           fullName: user.fullName,
@@ -165,14 +173,6 @@ exports.getDetailProduct = async (req, res) => {
 exports.addProduct = async (req, res) => {
   const { title, price } = req.body;
   let image = req.file ? req.file.filename : null;
-
-  // check user role, just partner can add product
-  if (req.user.role != "partner") {
-    return res.status(401).send({
-      status: "failed",
-      message: "You are not a partner",
-    });
-  }
 
   try {
     const newProduct = await products.create({
@@ -217,7 +217,7 @@ exports.addProduct = async (req, res) => {
           id: newProduct.id,
           title: newProduct.title,
           price: newProduct.price,
-          image: newProduct.image,
+          image: process.env.UPLOADS + newProduct.image,
           user: userDataModified(),
         },
       },
@@ -230,14 +230,6 @@ exports.addProduct = async (req, res) => {
 
 // controller edit product
 exports.editProduct = async function (req, res) {
-  // check user role, just partner can edit
-  if (req.user.role != "partner") {
-    return res.status(401).send({
-      status: "failed",
-      message: "You are not a partner",
-    });
-  }
-
   try {
     const dataProduct = await products.findOne({
       where: { id: req.params.productId },
@@ -250,7 +242,24 @@ exports.editProduct = async function (req, res) {
         message: "You are not owner",
       });
     }
-    await dataProduct.update(req.body);
+
+    let image = "";
+    // chek image updated or not
+    if (req.file) {
+      image = req.file.filename;
+      // if image updated preform delte old image
+      fs.unlink(`uploads/${dataProduct.image}`, (err) => {
+        err ? console.log(err) : null;
+      });
+    } else {
+      image = dataProduct.image;
+    }
+
+    await dataProduct.update({
+      ...req.body,
+      image,
+    });
+
     const dataUser = await user.findOne({
       where: { id: req.user.id },
       include: [
@@ -273,7 +282,7 @@ exports.editProduct = async function (req, res) {
           id: dataProduct.id,
           title: dataProduct.title,
           price: dataProduct.price,
-          image: dataProduct.image,
+          image: process.env.UPLOADS + dataProduct.image,
           user: {
             id: dataUser.id,
             fullName: dataUser.fullName,

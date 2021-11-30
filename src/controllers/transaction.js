@@ -52,7 +52,7 @@ exports.getTransactions = async (req, res) => {
           id: order.id,
           title: order.product.title,
           price: order.product.price,
-          image: order.product.image,
+          image: process.env.UPLOADS + order.product.image,
           qty: order.qty,
         };
       });
@@ -62,7 +62,7 @@ exports.getTransactions = async (req, res) => {
           id: tr.userOrder.id,
           fullName: tr.userOrder.fullName,
           location: tr.userOrder.profile.location,
-          email: tr.userOrder.image,
+          email: tr.userOrder.email,
         },
         status: tr.status,
         order: orders,
@@ -124,7 +124,7 @@ exports.getDetailTransaction = async (req, res) => {
           id: order.id,
           title: order.product.title,
           price: order.product.price,
-          image: order.product.image,
+          image: process.env.UPLOADS + order.product.image,
           qty: order.qty,
         };
       });
@@ -218,7 +218,7 @@ exports.addTransaction = async (req, res) => {
         id: o.id,
         title: o.product.title,
         price: o.product.price,
-        image: o.product.image,
+        image: process.env.UPLOADS + o.product.image,
         qty: o.qty,
       };
     });
@@ -229,7 +229,7 @@ exports.addTransaction = async (req, res) => {
         transaction: {
           id: transaction.id,
           userOrder: userData,
-          status: "on the way",
+          status: transaction.status,
           order: data,
         },
       },
@@ -290,7 +290,7 @@ exports.editTransaction = async (req, res) => {
         id: o.id,
         title: o.product.title,
         price: o.product.price,
-        image: o.product.image,
+        image: process.env.UPLOADS + o.product.image,
         qty: o.qty,
       };
     });
@@ -344,7 +344,7 @@ exports.deleteTransaction = async (req, res) => {
 exports.getUserTransactions = async (req, res) => {
   try {
     const transactionsData = await transactions.findAll({
-      where: { idBuyer: req.userId },
+      where: { idBuyer: req.user.id },
       include: [
         {
           model: user,
@@ -383,7 +383,7 @@ exports.getUserTransactions = async (req, res) => {
           id: order.id,
           title: order.product.title,
           price: order.product.price,
-          image: order.product.image,
+          image: process.env.UPLOADS + order.product.image,
           qty: order.qty,
         };
       });
@@ -393,7 +393,7 @@ exports.getUserTransactions = async (req, res) => {
           id: tr.userOrder.id,
           fullName: tr.userOrder.fullName,
           location: tr.userOrder.profile.location,
-          email: tr.userOrder.image,
+          email: tr.userOrder.email,
         },
         status: tr.status,
         order: orders,
