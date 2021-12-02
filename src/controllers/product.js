@@ -1,4 +1,4 @@
-const { products, user, profile } = require("../../models");
+const { products, user } = require("../../models");
 const fs = require("fs");
 
 // controller get all products
@@ -9,18 +9,7 @@ exports.getProducts = async (req, res) => {
         {
           model: user,
           as: "user",
-          include: [
-            {
-              model: profile,
-              as: "profile",
-              attributes: {
-                exclude: ["createdAt", "updatedAt", "id", "image", "idUser"],
-              },
-            },
-          ],
-          attributes: {
-            exclude: ["createdAt", "updatedAt", "password", "gender", "role"],
-          },
+          attributes: ["id", "fullName", "email", "phone", "location"],
         },
       ],
       attributes: {
@@ -29,10 +18,6 @@ exports.getProducts = async (req, res) => {
     });
 
     const data = await dataProduct.map((product) => {
-      let location = null;
-      product.user.profile.location
-        ? (location = product.user.profile.location)
-        : null;
       return {
         id: product.id,
         title: product.title,
@@ -43,7 +28,7 @@ exports.getProducts = async (req, res) => {
           fullName: product.user.fullName,
           email: product.user.email,
           phone: product.user.phone,
-          location,
+          location: product.user.location,
         },
       };
     });
@@ -60,7 +45,7 @@ exports.getProducts = async (req, res) => {
   }
 };
 
-// controller get a product by id partner
+// controller get all product by id partner
 exports.getProduct = async (req, res) => {
   const id = req.params.userId;
   try {
@@ -104,35 +89,17 @@ exports.getProduct = async (req, res) => {
 exports.getDetailProduct = async (req, res) => {
   const id = req.params.productId;
   try {
-    const data = await products.findAll({
-      where: { id: id },
+    const data = await products.findOne({
+      where: { id },
       include: [
         {
           model: user,
           as: "user",
-          include: [
-            {
-              model: profile,
-              as: "profile",
-              attributes: {
-                exclude: ["createdAt", "updatedAt", "id", "image", "idUser"],
-              },
-            },
-          ],
-          attributes: {
-            exclude: ["createdAt", "updatedAt", "password", "gender", "role"],
-          },
+          attributes: ["id", "fullName", "email", "phone", "location"],
         },
       ],
       attributes: {
-        exclude: [
-          "createdAt",
-          "updatedAt",
-          "password",
-          "gender",
-          "role",
-          "idUser",
-        ],
+        exclude: ["createdAt", "updatedAt", "idUser"],
       },
     });
 
@@ -142,22 +109,14 @@ exports.getDetailProduct = async (req, res) => {
         .send({ status: "failed", message: "Product not found" });
     }
 
-    const dataProduct = data.map((product) => {
-      const { id, title, price, image, user } = product;
-      return {
-        id,
-        title,
-        price,
-        image: process.env.UPLOADS + image,
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-          phone: user.phone,
-          location: user.profile.location,
-        },
-      };
-    });
+    const { title, price, image } = data;
+    const dataProduct = {
+      id,
+      title,
+      price,
+      image: process.env.UPLOADS + image,
+      user: data.user,
+    };
 
     res.send({
       status: "success",
@@ -184,32 +143,10 @@ exports.addProduct = async (req, res) => {
 
     const userData = await user.findOne({
       where: { id: req.user.id },
-      include: [
-        {
-          model: profile,
-          as: "profile",
-          attributes: {
-            exclude: ["createdAt", "updatedAt", "id", "image", "idUser"],
-          },
-        },
-      ],
-      attributes: {
-        exclude: ["createdAt", "updatedAt", "password", "gender", "role"],
-      },
+
+      attributes: ["id", "fullName", "email", "phone", "location"],
     });
 
-    const userDataModified = () => {
-      const { id, fullName, email, phone } = userData;
-      const location =
-        userData.profile != null ? userData.profile.location : null;
-      return {
-        id,
-        fullName,
-        email,
-        phone,
-        location,
-      };
-    };
     res.send({
       status: "success",
       data: {
@@ -218,7 +155,7 @@ exports.addProduct = async (req, res) => {
           title: newProduct.title,
           price: newProduct.price,
           image: process.env.UPLOADS + newProduct.image,
-          user: userDataModified(),
+          user: userData,
         },
       },
     });
@@ -239,7 +176,7 @@ exports.editProduct = async function (req, res) {
     if (req.user.id === dataProduct.userId) {
       return res.status(401).send({
         status: "failed",
-        message: "You are not owner",
+        message: "You are not owner of this product!",
       });
     }
 
@@ -262,18 +199,7 @@ exports.editProduct = async function (req, res) {
 
     const dataUser = await user.findOne({
       where: { id: req.user.id },
-      include: [
-        {
-          model: profile,
-          as: "profile",
-          attributes: {
-            exclude: ["createdAt", "updatedAt", "id", "image", "idUser"],
-          },
-        },
-      ],
-      attributes: {
-        exclude: ["createdAt", "updatedAt", "password", "gender", "role"],
-      },
+      attributes: ["id", "fullName", "email", "phone", "location"],
     });
 
     res.send({
@@ -283,13 +209,7 @@ exports.editProduct = async function (req, res) {
           title: dataProduct.title,
           price: dataProduct.price,
           image: process.env.UPLOADS + dataProduct.image,
-          user: {
-            id: dataUser.id,
-            fullName: dataUser.fullName,
-            email: dataUser.email,
-            phone: dataUser.phone,
-            location: dataUser.profile.location,
-          },
+          user: dataUser,
         },
       },
     });

@@ -16,7 +16,7 @@ exports.login = async (req, res) => {
     password: Joi.string().required(),
   });
 
-  // do validation and get error object fro schema.validate
+  // do validation and get error object from schema.validate
   const { error } = schema.validate(req.body);
 
   // if error send validation error message and
@@ -32,9 +32,7 @@ exports.login = async (req, res) => {
       where: {
         email: req.body.email,
       },
-      attributes: {
-        exclude: ["createdAt", "updatedAt"],
-      },
+      attributes: ["fullName", "email", "password", "id", "role"],
     });
 
     // if user not found send respone
@@ -45,8 +43,11 @@ exports.login = async (req, res) => {
       });
     }
 
+    // extract user databse
+    const { id, role, fullName, email, password } = userExist;
+
     // compare password between entered from client and from databse
-    const isValid = await bcrypt.compare(req.body.password, userExist.password);
+    const isValid = await bcrypt.compare(req.body.password, password);
 
     // check if not valid then return response with status 400 (bad request)
     if (!isValid) {
@@ -59,8 +60,8 @@ exports.login = async (req, res) => {
     // generate token
     const token = jwt.sign(
       {
-        id: userExist.id,
-        role: userExist.role,
+        id,
+        role,
       },
       process.env.TOKEN_KEY
     );
@@ -69,8 +70,8 @@ exports.login = async (req, res) => {
       status: "success",
       data: {
         user: {
-          fullName: userExist.fullName,
-          email: userExist.email,
+          fullName,
+          email,
           token,
         },
       },
@@ -86,7 +87,6 @@ exports.login = async (req, res) => {
 
 // Controller Register
 exports.register = async (req, res) => {
-  const { email, password, fullName, gender, phone, role } = req.body;
   // validation schema
   const schema = Joi.object({
     email: Joi.string().email().min(6).required(),
@@ -113,9 +113,6 @@ exports.register = async (req, res) => {
       where: {
         email: req.body.email,
       },
-      attributes: {
-        exclude: ["createdAt", "updatedAt"],
-      },
     });
 
     if (userExist) {
@@ -128,15 +125,11 @@ exports.register = async (req, res) => {
     // generate salt
     const salt = await bcrypt.genSalt(5);
     // hashing password from request body
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
     const newUser = await user.create({
-      email,
+      ...req.body,
       password: hashedPassword,
-      fullName,
-      gender,
-      phone,
-      role,
     });
 
     // generate token

@@ -17,13 +17,19 @@ module.exports = {
       fullName: {
         type: Sequelize.STRING,
       },
-      gender: {
-        type: Sequelize.STRING,
-      },
       phone: {
         type: Sequelize.STRING,
       },
       role: {
+        type: Sequelize.ENUM("user", "partner"),
+      },
+      gender: {
+        type: Sequelize.ENUM("male", "female"),
+      },
+      image: {
+        type: Sequelize.STRING,
+      },
+      location: {
         type: Sequelize.STRING,
       },
       createdAt: {

@@ -13,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
         as: "user",
         foreignKey: "idUser",
       });
+
+      products.belongsToMany(models.transactions, {
+        through: "orders",
+        foreignKey: "idProduct",
+      });
     }
   }
   products.init(

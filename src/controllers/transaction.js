@@ -1,11 +1,5 @@
 // import models
-const {
-  transactions,
-  orders,
-  products,
-  user,
-  profile,
-} = require("../../models");
+const { transactions, orders, products, user } = require("../../models");
 
 // controller
 
@@ -17,28 +11,16 @@ exports.getTransactions = async (req, res) => {
       include: [
         {
           model: user,
-          as: "userOrder",
-          include: [
-            {
-              model: profile,
-              as: "profile",
-              attributes: ["location"],
-            },
-          ],
-          attributes: ["id", "fullName", "email"],
+          as: "buyer",
+          attributes: ["id", "fullName", "email", "location"],
         },
         {
-          model: orders,
-          as: "orders",
-          include: [
-            {
-              model: products,
-              attributes: ["title", "price", "image"],
-            },
-          ],
-          attributes: {
-            exclude: ["createdAt", "updatedAt", "idTransaction", "idProduct"],
+          model: products,
+          through: {
+            model: orders,
+            attributes: ["qty"],
           },
+          attributes: ["id", "title", "price", "image"],
         },
       ],
       attributes: {
@@ -46,26 +28,21 @@ exports.getTransactions = async (req, res) => {
       },
     });
 
-    const data = await transactionsData.map((tr) => {
-      let orders = tr.orders.map((order) => {
-        return {
-          id: order.id,
-          title: order.product.title,
-          price: order.product.price,
-          image: process.env.UPLOADS + order.product.image,
-          qty: order.qty,
-        };
-      });
+    const data = transactionsData.map((trx) => {
       return {
-        id: tr.id,
-        userOrder: {
-          id: tr.userOrder.id,
-          fullName: tr.userOrder.fullName,
-          location: tr.userOrder.profile.location,
-          email: tr.userOrder.email,
-        },
-        status: tr.status,
-        order: orders,
+        id: trx.id,
+        userOrder: trx.buyer,
+        status: trx.status,
+        order: trx.products.map((order) => {
+          const { id, title, price, image } = order;
+          return {
+            id,
+            title,
+            price,
+            image: process.env.UPLOADS + image,
+            qty: order.orders.qty,
+          };
+        }),
       };
     });
 
@@ -84,33 +61,21 @@ exports.getTransactions = async (req, res) => {
 // get detail transaction
 exports.getDetailTransaction = async (req, res) => {
   try {
-    const transactionData = await transactions.findOne({
+    const transactionsData = await transactions.findOne({
       where: { id: req.params.transactionId },
       include: [
         {
           model: user,
-          as: "userOrder",
-          include: [
-            {
-              model: profile,
-              as: "profile",
-              attributes: ["location"],
-            },
-          ],
-          attributes: ["id", "fullName", "email"],
+          as: "buyer",
+          attributes: ["id", "fullName", "email", "location"],
         },
         {
-          model: orders,
-          as: "orders",
-          include: [
-            {
-              model: products,
-              attributes: ["title", "price", "image"],
-            },
-          ],
-          attributes: {
-            exclude: ["createdAt", "updatedAt", "idTransaction", "idProduct"],
+          model: products,
+          through: {
+            model: orders,
+            attributes: ["qty"],
           },
+          attributes: ["id", "title", "price", "image"],
         },
       ],
       attributes: {
@@ -118,34 +83,26 @@ exports.getDetailTransaction = async (req, res) => {
       },
     });
 
-    const data = () => {
-      let orders = transactionData.orders.map((order) => {
+    const data = {
+      id: transactionsData.id,
+      userOrder: transactionsData.buyer,
+      status: transactionsData.status,
+      order: transactionsData.products.map((order) => {
+        const { id, title, price, image } = order;
         return {
-          id: order.id,
-          title: order.product.title,
-          price: order.product.price,
-          image: process.env.UPLOADS + order.product.image,
-          qty: order.qty,
+          id,
+          title,
+          price,
+          image: process.env.UPLOADS + image,
+          qty: order.orders.qty,
         };
-      });
-
-      return {
-        id: transactionData.id,
-        userOrder: {
-          id: transactionData.userOrder.id,
-          fullName: transactionData.userOrder.fullName,
-          location: transactionData.userOrder.profile.location,
-          email: transactionData.userOrder.email,
-        },
-        status: transactionData.status,
-        order: orders,
-      };
+      }),
     };
 
     res.send({
       status: "success",
       data: {
-        transaction: data(),
+        transactions: data,
       },
     });
   } catch (error) {
@@ -156,70 +113,56 @@ exports.getDetailTransaction = async (req, res) => {
 
 // add transaction
 exports.addTransaction = async (req, res) => {
-  const newProducts = req.body.products;
+  const newOrders = req.body.products;
 
   try {
+    // get seller id from product that user buy
     const seller = await products.findOne({
       where: { id: 1 },
       attributes: ["idUser"],
     });
 
+    // get buyer detail
     const userOrder = await user.findOne({
       where: { id: req.user.id },
-      include: [
-        {
-          model: profile,
-          as: "profile",
-          attributes: ["location"],
-        },
-      ],
-      attributes: ["id", "fullName", "email"],
+      attributes: ["id", "fullName", "location", "email"],
     });
-
-    const userData = {
-      id: userOrder.id,
-      fullName: userOrder.fullName,
-      location: userOrder.profile.location,
-      email: userOrder.email,
-    };
 
     const transaction = await transactions.create({
       idBuyer: req.user.id,
       idSeller: seller.idUser,
-      status: "On the way",
+      status: "Waiting approve",
     });
 
-    const dataNewProduct = await newProducts.map((product) => {
+    const dataNewOrders = await newOrders.map((order) => {
       return {
-        qty: product.qty,
-        idProduct: product.id,
+        qty: order.qty,
+        idProduct: order.id,
         idTransaction: transaction.id,
       };
     });
 
-    const order = await orders.bulkCreate(dataNewProduct).then(() => {
-      const orderData = orders.findAll({
-        where: { idTransaction: transaction.id },
-        include: [
-          {
-            model: products,
-            attributes: ["title", "price", "image"],
-          },
-        ],
-        attributes: {
-          exclude: ["createdAt", "updatedAt", "idTransaction", "idProduct"],
+    await orders.bulkCreate(dataNewOrders);
+
+    const order = await orders.findAll({
+      where: { idTransaction: transaction.id },
+      include: [
+        {
+          model: products,
+          attributes: ["id", "title", "price", "image"],
         },
-      });
-      return orderData;
+      ],
+      attributes: ["qty"],
     });
 
-    const data = await order.map((o) => {
+    const data = order.map((order) => {
+      const { id, title, price, image } = order.product;
       return {
-        id: o.id,
-        title: o.product.title,
-        price: o.product.price,
-        image: process.env.UPLOADS + o.product.image,
-        qty: o.qty,
+        id,
+        title,
+        price,
+        image: process.env.UPLOADS + image,
+        qty: order.qty,
       };
     });
 
@@ -228,7 +171,7 @@ exports.addTransaction = async (req, res) => {
       data: {
         transaction: {
           id: transaction.id,
-          userOrder: userData,
+          userOrder: userOrder,
           status: transaction.status,
           order: data,
         },
@@ -250,27 +193,16 @@ exports.editTransaction = async (req, res) => {
       include: [
         {
           model: user,
-          as: "userOrder",
-          include: [
-            {
-              model: profile,
-              as: "profile",
-              attributes: ["location"],
-            },
-          ],
-          attributes: ["id", "fullName", "email"],
+          as: "buyer",
+          attributes: ["id", "fullName", "location", "email"],
         },
         {
-          model: orders,
-          as: "orders",
-          include: [
-            {
-              model: products,
-              as: "product",
-              attributes: ["title", "price", "image"],
-            },
-          ],
-          attributes: ["id", "qty"],
+          model: products,
+          through: {
+            model: orders,
+            attributes: ["qty"],
+          },
+          attributes: ["id", "title", "price"],
         },
       ],
       attributes: ["id", "status"],
@@ -278,29 +210,23 @@ exports.editTransaction = async (req, res) => {
 
     await transaction.update({ status: status });
 
-    const userOrder = {
-      id: transaction.userOrder.id,
-      fullName: transaction.userOrder.fullName,
-      location: transaction.userOrder.profile.location,
-      email: transaction.userOrder.email,
-    };
-
-    const order = transaction.orders.map((o) => {
+    const order = transaction.products.map((order) => {
       return {
-        id: o.id,
-        title: o.product.title,
-        price: o.product.price,
-        image: process.env.UPLOADS + o.product.image,
-        qty: o.qty,
+        id: order.id,
+        title: order.title,
+        price: order.price,
+        image: process.env.UPLOADS + order.image,
+        qty: order.orders.qty,
       };
     });
 
     res.send({
       status: "success",
       data: {
+        transaction,
         transaction: {
           id: transaction.id,
-          userOrder,
+          userOrder: transaction.buyer,
           status: transaction.status,
           order,
         },
@@ -343,63 +269,37 @@ exports.deleteTransaction = async (req, res) => {
 // get user getTransactions
 exports.getUserTransactions = async (req, res) => {
   try {
-    const transactionsData = await transactions.findAll({
+    const transactionData = await transactions.findAll({
       where: { idBuyer: req.user.id },
       include: [
         {
-          model: user,
-          as: "userOrder",
-          include: [
-            {
-              model: profile,
-              as: "profile",
-              attributes: ["location"],
-            },
-          ],
-          attributes: ["id", "fullName", "email"],
-        },
-        {
-          model: orders,
-          as: "orders",
-          include: [
-            {
-              model: products,
-              attributes: ["title", "price", "image"],
-            },
-          ],
-          attributes: {
-            exclude: ["createdAt", "updatedAt", "idTransaction", "idProduct"],
+          model: products,
+          through: {
+            model: orders,
+            attributes: ["qty"],
           },
+          attributes: ["id", "title", "price", "image"],
         },
       ],
-      attributes: {
-        exclude: ["createdAt", "updatedAt", "idBuyer", "idSeller"],
-      },
+      attributes: ["id", "status"],
     });
 
-    const data = await transactionsData.map((tr) => {
-      let orders = tr.orders.map((order) => {
-        return {
-          id: order.id,
-          title: order.product.title,
-          price: order.product.price,
-          image: process.env.UPLOADS + order.product.image,
-          qty: order.qty,
-        };
-      });
+    const data = transactionData.map((trx) => {
       return {
-        id: tr.id,
-        userOrder: {
-          id: tr.userOrder.id,
-          fullName: tr.userOrder.fullName,
-          location: tr.userOrder.profile.location,
-          email: tr.userOrder.email,
-        },
-        status: tr.status,
-        order: orders,
+        id: trx.id,
+        status: trx.status,
+        order: trx.products.map((product) => {
+          const { id, title, price, image } = product;
+          return {
+            id,
+            title,
+            price,
+            image: process.env.UPLOADS + image,
+            qty: product.orders.qty,
+          };
+        }),
       };
     });
-
     res.send({
       status: "success",
       data: {

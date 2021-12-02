@@ -3,39 +3,14 @@ const { user, profile } = require("../../models");
 exports.getUsers = async (req, res) => {
   try {
     const users = await user.findAll({
-      include: {
-        model: profile,
-        as: "profile",
-        attributes: {
-          exclude: ["id", "createdAt", "updatedAt", "idUser"],
-        },
-      },
       attributes: {
         exclude: ["password", "createdAt", "updatedAt", "idUser"],
       },
     });
 
-    const userData = await users.map((user) => {
-      let image = null;
-      let location = null;
-      if (user.profile) {
-        location = user.profile.location;
-        image = user.profile.image;
-      }
-      return {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        location,
-        image,
-        role: user.role,
-      };
-    });
-
     res.send({
       status: "success",
-      data: { users: userData },
+      data: { users },
     });
   } catch (error) {
     console.log(error);
@@ -46,6 +21,7 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+// controller delete user by id
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;

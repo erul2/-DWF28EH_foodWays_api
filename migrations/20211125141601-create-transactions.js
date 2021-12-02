@@ -15,7 +15,7 @@ module.exports = {
           key: "id",
         },
         onUpdate: "CASCADE",
-        onDelete: "NO ACTION",
+        onDelete: "SET NULL",
       },
       idSeller: {
         type: Sequelize.INTEGER,
@@ -24,10 +24,10 @@ module.exports = {
           key: "id",
         },
         onUpdate: "CASCADE",
-        onDelete: "NO ACTION",
+        onDelete: "SET NULL",
       },
       status: {
-        type: Sequelize.STRING,
+        type: Sequelize.ENUM("Waiting approve", "On the way", "Order success"),
       },
       createdAt: {
         allowNull: false,

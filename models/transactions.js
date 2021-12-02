@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       transactions.belongsTo(models.user, {
-        as: "userOrder",
+        as: "buyer",
         foreignKey: "idBuyer",
       });
 
@@ -19,8 +19,8 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "idSeller",
       });
 
-      transactions.hasMany(models.orders, {
-        as: "orders",
+      transactions.belongsToMany(models.products, {
+        through: "orders",
         foreignKey: "idTransaction",
       });
     }
@@ -29,7 +29,11 @@ module.exports = (sequelize, DataTypes) => {
     {
       idBuyer: DataTypes.INTEGER,
       idSeller: DataTypes.INTEGER,
-      status: DataTypes.STRING,
+      status: DataTypes.ENUM([
+        "Waiting approve",
+        "On the way",
+        "Order success",
+      ]),
     },
     {
       sequelize,
